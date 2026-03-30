@@ -54,11 +54,11 @@ SortBy              = "default"
     provider = "giscus"
 
     [comments.giscus]
-        repo             = ""
-        repoID           = ""
-        category         = ""
-        categoryID       = ""
-        mapping          = "title"
+        repo             = "jayng9663/blog"
+        repoID           = "R_kgDOR0U7HQ"
+        category         = "Announcements"
+        categoryID       = "DIC_kwDOR0U7Hc4C5lYF"
+        mapping          = "pathname"
         lightTheme       = "light"
         darkTheme        = "dark_dimmed"
         reactionsEnabled = 1
