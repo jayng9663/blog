@@ -6,5 +6,5 @@ image: linux.png
 # Badge style
 style:
     background: "#0f172a"
-    color: "#1793d1"
+    color: "#facc15"
 ---
