@@ -1,0 +1,55 @@
+// --- assets/scss/custom.scss ---
+
+/* 1. Hide the automatic Description (subtitle) on the post page */
+.article-page .article-subtitle {
+    display: none !important;
+}
+
+/* 2. Hide the automatic Featured Image container on the post page */
+.article-page .article-image {
+    display: none !important;
+}
+
+/* 3. Optional: Clean up excess vertical spacing */
+.article-page .article-header {
+    margin-bottom: 1.5rem;
+}
+
+/* Let homepage images scale naturally based on their width */
+.article-list article .article-image {
+    height: auto !important;
+    max-height: none !important;
+
+    img {
+        position: relative !important; // Overrides theme absolute positioning
+        height: auto !important;
+        width: 100% !important;
+        object-fit: contain !important; // Ensures the full image is visible
+    }
+}
+
+/* Inline Spoiler - Dark Mode (Default) */
+.inline-spoiler {
+    background-color: #444 !important; /* Dark block */
+    color: transparent !important;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    border-radius: 3px;
+    padding: 0 3px;
+
+    &:hover, &:active {
+        color: #eee !important; /* Off-white text on hover */
+        background-color: #555 !important;
+    }
+}
+
+/* Inline Spoiler - Light Mode Override */
+html[data-theme="light"] .inline-spoiler {
+    background-color: #ccc !important; /* Light grey block */
+    color: transparent !important;
+
+    &:hover, &:active {
+        color: #111 !important; /* Near-black text on hover */
+        background-color: #bbb !important;
+    }
+}

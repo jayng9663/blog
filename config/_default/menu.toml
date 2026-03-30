@@ -1,0 +1,26 @@
+# Configure main menu and social menu
+#[[main]]
+#identifier = "home"
+#name = "Home"
+#url = "/"
+#[main.params]
+#icon = "home"
+#newtab = true
+
+[[social]]
+    identifier = "github"
+    name       = "GitHub"
+    url        = "https://github.com/jayng9663"
+
+    [social.params]
+        icon   = "brand-github"
+        newtab = true
+
+[[social]]
+    identifier = "twitter"
+    name       = "Twitter"
+    url        = "https://youtube.com/@jayng9663"
+
+    [social.params]
+        icon   = "video"
+        newtab = true
