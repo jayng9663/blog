@@ -1,6 +1,6 @@
 ---
 title: "心象天儀本線 ~Per Aspera Ad Astra~ Demo"
-description: Demo release for the doujin visual novel 心象天儀本線 ~Per Aspera Ad Astra~, demo dropped January 29, 2026, ahead of the full release later in 2026. It caught my attention when I looking up new game on Steam, because of it uniq doujin art style, 4:3 resolution and the incredibly ancient UI give it a classic visual novel feel, reminiscent me of early 2000-2010 visual novels..."
+description: Demo release for the doujin visual novel 心象天儀本線 ~Per Aspera Ad Astra~, demo dropped January 29, 2026, ahead of the full release later in 2026. It caught my attention when I looking up new game on Steam, because of it uniq doujin art style, 4:3 resolution and the incredibly ancient UI give it a classic visual novel feel, it reminds me of early 2000–2010 visual novels...."
 date: 2026-03-29T21:23:52-07:00
 image: 1.png
 categories:
@@ -22,7 +22,7 @@ VNDB: https://vndb.org/v54933<br/>
 Official Website: https://www.hoshiorigakuen.com/<br/>
 Steam: https://store.steampowered.com/app/3664060/
 
-Demo release for the doujin visual novel *心象天儀本線 \~Per Aspera Ad Astra\~*, demo dropped January 29, 2026, ahead of the full release later in 2026. It caught my attention when I looking up new game on Steam, because of it uniq *doujin* art style, 4:3 resolution and the incredibly ancient UI give it a classic visual novel feel, reminiscent me of early 2000-2010 visual novels.
+Demo release for the doujin visual novel *心象天儀本線 \~Per Aspera Ad Astra\~*, demo dropped January 29, 2026, ahead of the full release later in 2026. It caught my attention when I looking up new game on Steam, because of it uniq *doujin* art style, 4:3 resolution and the incredibly ancient UI give it a classic visual novel feel, it reminds me of early 2000–2010 visual novels.
 
 {{< youtube 1eF3VeaXkg4 >}}
 
