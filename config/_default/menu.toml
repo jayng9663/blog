@@ -17,8 +17,8 @@
         newtab = true
 
 [[social]]
-    identifier = "twitter"
-    name       = "Twitter"
+    identifier = "youtube"
+    name       = "Youtube"
     url        = "https://youtube.com/@jayng9663"
 
     [social.params]
