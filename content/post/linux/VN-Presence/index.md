@@ -83,7 +83,7 @@ Lutris passes the game name explicitly as command-line arguments after `lutris-w
 After all candidates are collected, the daemon reads **field 22** (`starttime`) from each process's `/proc/<pid>/stat`. Candidates are then **sorted ascending by starttime**, so the process that launched first is always tried first during VNDB resolution. This makes multi-candidate priority deterministic and reproducible across polls.
 
 > [!NOTE]
-> See the [proc/[PID]/stat field reference](/blog/p/proc/pid/stat-field-reference/) for a full breakdown of all stat fields.
+> See the [/proc/\[PID\]/stat field reference](proc_stat_fields.md) for a full breakdown of all stat fields.
 
 > [!TIP]
 > Run with `--verbose` to see candidates list in the debug output:
@@ -194,9 +194,9 @@ Matching rules:
 The default file includes common false-positives: Steam runtimes, Proton, Wine helpers, and launchers.
 
 > [!WARNING]
-> If a title has no VNDB match and is not in the ignore list, the daemon will not add it
-> to ignore automatically. It will retry the VNDB query on every detection. Add a `SKIP`
-> entry in `cache.csv` or an entry in `ignore.txt` to suppress it permanently.
+> If a title has no VNDB match, the daemon automatically adds it to ignore.txt after the first failed query.
+> It will not be retried on subsequent polls. To force a retry, remove the entry from ignore.txt.
+> To permanently suppress it without querying VNDB at all, add a SKIP entry to cache.csv instead.
 
 ---
 
@@ -215,55 +215,14 @@ The default file includes common false-positives: Steam runtimes, Proton, Wine h
 | Constant | Default | Description |
 |---|---|---|
 | `DISCORD_APP_ID` | `1482345564698841189` | Discord application ID |
-| `DISCORD_ACTIVITY_TYPE` | `0` | Activity type: 0=Game, 1=Streaming, 2=Listening, 3=Watching |
-| `IMAGE_SEXUAL` | `1.80` | Maximum sexual rating before cover is suppressed |
-| `IMAGE_VIOLENCE` | `1.80` | Maximum violence rating before cover is suppressed |
-| `IMAGE_VOTECOUNT` | `5` | Minimum vote count before ratings are trusted |
-| `VNDB_MIN_SIMILARITY` | `0.35` | Minimum trigram score to accept a VNDB match |
-| `POLL_INTERVAL` | `5s` | How often to scan `/proc` for running processes |
-| `VNDB_CACHE_TTL` | `24h` | How long a cache entry is valid before re-querying VNDB |
-| `STABLE_TITLE_POLLS` | `2` | Polls a candidate must be stable before acting |
-| `VNDB_MAX_RESULTS` | `1` | Maximum results per VNDB query (index 0 is used) |
-| `CACHE_USE_DB` | `false` | Use SQLite (`cache.db`) instead of CSV *(experimental)* |
-| `RPC_STATE_READING` | `"Reading"` | Discord state string while a VN is active |
-| `RPC_STATE_IDLE` | `"Idle"` | Discord state string while idle |
-| `RPC_DEFAULT_DETAILS` | `"Playing a Visual Novel"` | Details line when no VNDB match is found |
-| `RPC_SMALL_IMG_KEY` | `"vndb_logo"` | Discord asset key for the small VNDB logo image |
-| `RPC_SMALL_IMG_TEXT` | `"VNDB"` | Tooltip text for the small image |
+| `IMAGE_SEXUAL` | `1.80` | Maximum threshold value for sexual before being suppressed |
+| `IMAGE_VIOLENCE` | `1.80` | Maximum threshold value for violence before being suppressed |
+| `VNDB_MIN_SIMILARITY` | `0.35` | Minimum trigram score to accept a match |
+| `POLL_INTERVAL` | `5s` | How often to scan for running processes |
+| `VNDB_CACHE_TTL` | `24h` | How long a `cache.csv` or `cache.db` entry is valid before re-querying VNDB |
+| `STABLE_TITLE_POLLS` | `2` | Polls a title must be stable before acting |
+| `CACHE_USE_DB` | `false` | **[Experimental]** Use SQLite (`cache.db`) instead of CSV (`cache.csv`) |
 
----
- 
-## Architecture
- 
-The project is composed of nine focused, single-responsibility modules:
- 
-| Module | Source Files | Responsibility |
-|---|---|---|
-| **Entry point** | `main.cpp` | Main loop, debounce state machine, candidate resolution pipeline |
-| **Process scanner** | `process_scanner.cpp/.hpp` | Iterates `/proc`, detects Lutris and Steam game processes, reads `starttime` |
-| **Steam detector** | `steam_detector.cpp/.hpp` | Reads `SteamAppId` env vars, parses ACF manifests and VDF playtime files |
-| **VNDB client** | `vndb_client.cpp/.hpp` | HTTP POST to VNDB Kana API, trigram matching, release endpoint fallback |
-| **VN cache** | `vn_cache.cpp/.hpp` | Persistent CSV/SQLite cache with alias, SKIP, TTL, and live-reload logic |
-| **Ignore list** | `ignore_list.cpp/.hpp` | Live-reloadable process-name suppression list with exact/substring rules |
-| **RPC manager** | `rpc_manager.cpp/.hpp` | Discord IPC wrapper with rate limiting, deferred flush, and change detection |
-| **Config** | `config.hpp` | All compile-time constants in one place |
-| **Logger** | `logger.hpp` | Thread-safe ANSI-coloured logger singleton with `LOG_DEBUG/INFO/WARN/ERR` macros |
-| **Lutris DB** | `lutris_db.cpp/.hpp` | Reads and formats playtime from Lutris's SQLite `pga.db` |
- 
-### Key Design Decisions
- 
-**Deterministic multi-candidate priority** — when multiple games are running, candidates are sorted by `/proc/<pid>/stat` field 22 (`starttime`, clock ticks since boot). The process that launched earliest is always tried first, making priority stable and reproducible across polls without any user configuration.
- 
-**Discord rate-limit compliance** — Discord silently drops `SET_ACTIVITY` calls faster than ~15 seconds apart. `RpcManager` tracks the wall-clock time of the last successful push and defers any call that falls within a 16-second window. Deferred updates are flushed on the next `runCallbacks()` tick, ensuring no update is ever lost.
- 
-**No presence flicker on stable sessions** — the early-out in the main loop checks whether the currently displayed VN is still in the candidate set before doing any cache or VNDB work. If it is still running, the loop sleeps immediately, so Discord is never unnecessarily cleared and re-set.
- 
-**Cache-first, ignore-list-second** — VNDB HTTP queries are only issued on a true cache miss or TTL expiry. Candidates that fail VNDB resolution are added to the ignore list so subsequent polls skip them instantly, letting the next candidate be tried without any network round trip.
- 
-**Live file reloading without restart** — both `cache.csv` and `ignore.txt` are checked for `mtime` changes on every poll using `std::filesystem::last_write_time`. Edits made while the daemon is running take effect within one poll cycle with no signals or process restart needed.
- 
-**Explicit content safety** — image ratings are only trusted when backed by at least `IMAGE_VOTECOUNT` votes. Cover URLs are stripped from cache entries for explicit results so they can never accidentally appear after a cache reload even if thresholds are later changed.
- 
 ---
 
 ## Building
@@ -286,6 +245,7 @@ cmake --build build
 |---|---|
 | [discord-presence](https://github.com/EclipseMenu/discord-presence) | Discord Rich Presence (modern C++ rewrite) |
 | [nlohmann/json](https://github.com/nlohmann/json) | JSON parsing |
+| [cpp-logger](https://github.com/jayng9663/cpp-logger) | Logging |
 | [libcurl](https://curl.se/libcurl/) | HTTP requests to VNDB API |
 | [libsqlite3](https://www.sqlite.org/) | Read Lutris playtime database |
 
@@ -316,4 +276,3 @@ Launch a game through **Lutris** or **Steam**, and the daemon will detect it aut
 | Ignore list | `~/.config/vn-discord-rpc/ignore.txt` |
 | Lutris DB | `~/.local/share/lutris/pga.db` |
 | Steam VDF | `~/.local/share/Steam/userdata/<id>/config/localconfig.vdf` |
-

@@ -20,3 +20,8 @@ disqusShortname = "hugo-theme-stack"
 [taxonomies]
     category = "categories"
     tag = "tags"
+
+enableGitInfo = true
+
+[frontmatter]
+  lastmod = [":git", "lastmod", ":fileModTime", "date"]
