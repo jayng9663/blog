@@ -1,0 +1,18 @@
+# Multilingual support. Language keys must match the theme i18n filenames:
+# https://github.com/CaiJimmy/hugo-theme-stack/tree/master/i18n
+[en]
+    languageName      = "English"
+    languageCode      = "en-us"
+    languagedirection = "ltr"
+    title             = "Jayng9663"
+    weight            = 1
+
+[zh-hant-tw]
+    languageName      = "繁體中文"
+    languageCode      = "zh-Hant-TW"
+    languagedirection = "ltr"
+    title             = "Jayng9663"
+    weight            = 2
+
+    [zh-hant-tw.params.sidebar]
+        subtitle = "熱愛 Linux 與視覺小說的傢伙"
