@@ -305,3 +305,21 @@ Most of the work in streaming TTS is in the system around the model, not the mod
 - Provide a transport with a working stop / barge-in path.
 
 With each frame at 80 ms, every one of these choices trades latency against audio quality. The defaults above are the balance that has held up best for interactive use.
+
+---
+
+## Abbreviations
+
+| Short form | Full form | Meaning |
+| --- | --- | --- |
+| TTS | Text-to-Speech | Synthesising speech audio from input text. |
+| TTFA | Time-to-First-Audio | Wall-clock latency from sending the request to the first playable audio chunk. |
+| PCM | Pulse-Code Modulation | Raw, uncompressed audio samples — the vocoder's output format. |
+| `pcm_s16le` / `pcm_f32le` | PCM, signed 16-bit / 32-bit float, little-endian | The two on-the-wire sample formats the server can stream. |
+| KV cache | Key/Value cache | Stored attention keys and values that let the model extend a sequence without recomputing the prompt each step. |
+| CUDA | Compute Unified Device Architecture | NVIDIA's GPU programming platform; a *side stream* is an independent CUDA execution queue. |
+| EOS | End-of-Sequence | The special token that signals generation is finished. |
+| ICL | In-Context Learning | Voice cloning by conditioning on a reference clip's codes and transcript, without fine-tuning. |
+| codec | Coder–decoder | The model that encodes audio into discrete tokens and decodes them back to a waveform. |
+| vocoder | Voice coder | The neural decoder that turns codec frames into a PCM waveform. |
+| mel | Mel spectrogram | A spectrogram on the perceptual mel frequency scale. |
