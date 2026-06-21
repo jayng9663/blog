@@ -64,6 +64,7 @@ The second requirement is the hard one. The vocoder is convolutional, with a rec
 The full pipeline:
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 55}, "themeVariables": {"fontSize": "18px"}}}%%
 flowchart TB
     subgraph TALK["Talker · autoregressive · main GPU stream"]
         direction TB
@@ -80,7 +81,6 @@ flowchart TB
     IN([Text + speaker / voice prompt]):::io
     BUF[(Frame buffer)]:::buf
     GATE{emit now?\nN frames since last}:::gate
-    SNAP[Snapshot trailing\ndecode window]:::mix
     OA[Overlap-add + crossfade\nkeep only the new tail]:::mix
     OUT([Yield PCM chunk]):::io
     FLUSH([Flush remaining audio]):::io
@@ -88,10 +88,9 @@ flowchart TB
     IN --> PF
     STEP -->|append frame| BUF
     STEP -. EOS / max frames .-> FLUSH
-    STEP --> GATE
-    GATE -->|no, sample next token, next frame| STEP
-    GATE -->|yes, every N frames| SNAP
-    SNAP --> DEC
+    BUF --> GATE
+    GATE -->|no, next frame| STEP
+    GATE -->|yes, snapshot window| DEC
     DEC --> OA
     OA --> OUT
 
@@ -127,11 +126,27 @@ Two parameters control when audio is emitted:
 
 Emitting the first chunk early and then settling into the steady cadence keeps startup latency low without making every later chunk unnecessarily small.
 
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 40, "rankSpacing": 38}, "themeVariables": {"fontSize": "18px"}}}%%
+flowchart LR
+    REQ([request]):::io --> F4[generate\n4 frames]:::talk
+    F4 --> C1[chunk 1\nfast first audio]:::mix
+    C1 --> F8a[generate\n8 frames]:::talk
+    F8a --> C2[chunk 2\n640 ms audio]:::mix
+    C2 --> F8b[generate\n8 frames]:::talk
+    F8b --> C3[chunk 3\n640 ms audio]:::mix
+    C3 --> DOTS([... until EOS]):::io
+    classDef io fill:#34708f,stroke:#7fb6d6,color:#fff
+    classDef talk fill:#1f8a7c,stroke:#54cdbb,color:#fff
+    classDef mix fill:#c47b2e,stroke:#f0ad62,color:#fff
+```
+
 ### 3. Sliding-window decoding
 
 This is what keeps the audio clean. Instead of decoding only the 8 new frames, each emit decodes a *trailing window* of the last `decode_window_frames` (default 80) frames, and keeps only the newly produced tail samples:
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 50, "rankSpacing": 55}, "themeVariables": {"fontSize": "18px"}}}%%
 flowchart TB
     subgraph WIN["Trailing window · last 80 frames · re-decoded every emit"]
         direction LR
@@ -184,6 +199,7 @@ The talker (autoregressive, latency-bound) and the vocoder (a heavier convolutio
 The window decode therefore runs on a worker thread with its own CUDA side stream, overlapping vocoder kernels with the talker's next frames:
 
 ```mermaid
+%%{init: {"sequence": {"actorMargin": 70, "boxMargin": 12, "noteMargin": 14, "messageFontSize": 16, "actorFontSize": 17, "noteFontSize": 15}}}%%
 sequenceDiagram
     autonumber
     participant T as Talker (main stream)
@@ -222,6 +238,7 @@ The transport is a small FastAPI WebSocket server with a deliberately minimal pr
 4. The server closes with a JSON `end` message (chunk count, duration, and whether the stream was stopped).
 
 ```mermaid
+%%{init: {"sequence": {"actorMargin": 70, "boxMargin": 12, "noteMargin": 14, "messageFontSize": 16, "actorFontSize": 17, "noteFontSize": 15}}}%%
 sequenceDiagram
     autonumber
     participant C as Client
