@@ -42,7 +42,20 @@ I use the 12 Hz tokenizer. The relevant figures:
 
 One codec frame is therefore 80 ms of audio. That figure sets every latency trade-off below.
 
-> The 25 Hz tokenizer cannot stream this way: it needs x-vectors and reference mels at decode time, which are not available on a per-frame basis. Streaming is limited to the 12 Hz tokenizer.
+> **Streaming is limited to the 12 Hz tokenizer**, and the reason is architectural rather than a missing feature, which deserves a detailed explanation as it also explains why the entire pipeline is structured this way.
+
+The two tokenizers turn codes back into audio in completely different ways.
+
+The **12 Hz tokenizer** is a self-contained neural codec. Its decoder takes a single argument — the discrete codes — and maps them straight to a waveform (`decode(audio_codes) -> wav`). It is feed-forward, deterministic, and has a local receptive field: a given run of codes always renders to the same samples, and each frame's audio depends only on a handful of neighbouring frames. Everything needed to reproduce timbre, pitch, and prosody is already baked into the codes themselves. That is exactly the property streaming exploits — you can take any *trailing window* of codes, decode it on its own, and the freshly produced samples line up with the previous window's render, so the overlap-add crossfade from §3 stitches consecutive chunks together without a seam.
+
+The **25 Hz tokenizer** is a fundamentally different design. Its decoder signature is `decode(audio_codes, xvectors, ref_mels)`, and internally it is a *conditional generative model*: a **DiT** (diffusion transformer) conditioned on a global **x-vector** — a fixed-length speaker embedding — and on a **reference mel**-spectrogram taken from the prompt voice, followed by a **BigVGAN** neural vocoder that converts the generated mel into the final waveform. Rather than mapping codes directly to audio, it *generates* the mel by running many iterative denoising steps that attend over the entire token sequence, and only then vocodes the result.
+
+Two properties of that design rule out the sliding-window approach:
+
+- **It decodes the whole utterance at once, not incrementally.** A diffusion transformer denoises the full sequence with global, non-causal attention; there is simply no "emit the last eight frames" operation. Forcing it to decode tiny windows would be both wrong — each window would be missing the global context the model assumes — and far too slow, because every window would pay for several denoising passes over the sequence, overshooting the real-time budget many times over.
+- **Its output is not a stable function of the codes.** Overlap-add works only because re-decoding the same region of codes yields (near-)identical samples that can be blended. The 25 Hz decoder's output also depends on the reference conditioning, the diffusion trajectory, and full-sequence attention, so two renders of the same region won't match — and the crossfade, the very mechanism that hides chunk boundaries, has nothing consistent to blend.
+
+So the streaming path deliberately accepts only the 12 Hz codec. The 25 Hz tokenizer is reserved for offline, whole-utterance synthesis, where its heavier reference-conditioned decoder can run unconstrained and deliver its higher fidelity.
 
 ---
 
@@ -323,3 +336,6 @@ With each frame at 80 ms, every one of these choices trades latency against audi
 | codec | Coder–decoder | The model that encodes audio into discrete tokens and decodes them back to a waveform. |
 | vocoder | Voice coder | The neural decoder that turns codec frames into a PCM waveform. |
 | mel | Mel spectrogram | A spectrogram on the perceptual mel frequency scale. |
+| DiT | Diffusion Transformer | A transformer that produces its output by iterative denoising (diffusion) over the whole sequence, rather than mapping inputs straight to outputs. The 25 Hz decoder is one. |
+| x-vector | — | A fixed-length neural embedding that captures a speaker's voice identity, extracted from a reference clip. |
+| BigVGAN | — | A neural vocoder (mel-spectrogram → waveform); the final stage of the 25 Hz decoder. |
